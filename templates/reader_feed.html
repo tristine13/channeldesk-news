@@ -1,0 +1,57 @@
+{% extends "reader_base.html" %}
+{% from "_reader_macros.html" import card with context %}
+{% block title %}The Channel Desk — Campus News{% endblock %}
+
+{% block tabs %}
+<nav class="rd-tabs" aria-label="Sections">
+    {% for key, label in tabs %}
+    <button type="button" class="rd-tab {{ 'active' if loop.first }}" data-tab="{{ key }}">{{ label }}</button>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block body %}
+<main class="rd-layout">
+
+    <aside class="rd-rail rd-left">
+        <section class="rd-box">
+            <h3 class="rd-box-title">Top Stories</h3>
+            <ol class="rd-plain">
+                {% for p in posts[:4] %}
+                <li><a href="{{ url_for('reader_article', post_id=p.id) }}">{{ p.title }}</a>
+                    <small>{{ p.label }} · {{ p.created_at|ago }}</small></li>
+                {% else %}<li class="rd-muted">No stories yet.</li>{% endfor %}
+            </ol>
+        </section>
+        <section class="rd-box">
+            <h3 class="rd-box-title">Saved Reading List</h3>
+            <div data-saved-list data-empty="Tap the bookmark on a story to keep it here."></div>
+        </section>
+        <p class="rd-colophon">The Official Tertiary Student Publication</p>
+    </aside>
+
+    <section class="rd-feed" id="rd-feed">
+        {% for p in posts %}{{ card(p, reactions) }}{% endfor %}
+        <p class="rd-empty" id="rd-empty" {% if posts %}hidden{% endif %}>
+            {% if posts %}No stories match your search.{% else %}No approved stories yet. Check back soon.{% endif %}
+        </p>
+    </section>
+
+    <aside class="rd-rail rd-right">
+        <section class="rd-box">
+            <h3 class="rd-box-title">Most Read on Campus</h3>
+            <ol class="rd-ranked">
+                {% for p in most_read %}
+                <li><span class="rd-rank">{{ loop.index }}</span>
+                    <a href="{{ url_for('reader_article', post_id=p.id) }}">{{ p.title }}</a></li>
+                {% else %}<li class="rd-muted">Nothing yet.</li>{% endfor %}
+            </ol>
+        </section>
+        <section class="rd-box" id="rd-poll">
+            <h3 class="rd-box-title">Campus Pulse</h3>
+            <div data-poll-body></div>
+        </section>
+    </aside>
+</main>
+<script type="application/json" id="rd-poll-data">{{ poll|tojson }}</script>
+{% endblock %}

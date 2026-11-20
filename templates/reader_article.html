@@ -1,0 +1,60 @@
+{% extends "reader_base.html" %}
+{% from "_reader_macros.html" import card, share_menu, bookmark with context %}
+{% block title %}{{ post.title }} — The Channel Desk{% endblock %}
+{% block bodyclass %}rd-article-page{% endblock %}
+
+{% block body %}
+<main class="rd-article">
+    <a class="rd-back" href="{{ url_for('reader_feed') }}">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> All stories
+    </a>
+    <p class="rd-kicker">{{ post.label }}</p>
+    <h1 class="rd-title">{{ post.title }}</h1>
+    <div class="rd-byline rd-byline-lg">
+        <span class="rd-avatar" aria-hidden="true">{{ (post.author or '?')[:1]|upper }}</span>
+        <div class="rd-byline-text">
+            <strong>{{ post.author }}</strong>{% if post.position %} <span class="dot">•</span> {{ post.position }}{% endif %}
+            <div class="rd-sub">{{ post.created_at.strftime('%B %d, %Y') }} <span class="dot">•</span> {{ post.minutes }} min read <span class="dot">•</span> {{ post.views }} view{{ '' if post.views == 1 else 's' }}</div>
+        </div>
+    </div>
+
+    {% if post.images %}
+    <figure class="rd-figure">
+        <img src="{{ url_for('reader_media', filename=post.images[0]) }}" alt="">
+        <figcaption>Photo: The Channel Desk photojournalists</figcaption>
+    </figure>
+    {% endif %}
+
+    <div class="rd-body">{{ post.content|paragraphs }}</div>
+
+    {% for img in post.images[1:] %}
+    <figure class="rd-figure">
+        <img src="{{ url_for('reader_media', filename=img) }}" alt="" loading="lazy">
+        <figcaption>Photo: The Channel Desk photojournalists</figcaption>
+    </figure>
+    {% endfor %}
+
+    {% if more %}
+    <section class="rd-more">
+        <h3 class="rd-box-title">More from The Channel Desk</h3>
+        <div class="rd-more-list">
+            {% for p in more %}<a href="{{ url_for('reader_article', post_id=p.id) }}">
+                <small>{{ p.label }}</small><span>{{ p.title }}</span></a>{% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</main>
+
+<!-- floating reaction / share pill -->
+<div class="rd-pill" data-react data-post="{{ post.id }}" data-mine="{{ post.my_reaction or '' }}">
+    {% for key, label in reactions %}
+    <button type="button" data-kind="{{ key }}" class="{{ 'on' if post.my_reaction == key }}" aria-label="{{ label }}" title="{{ label }}">
+        <span>{{ {'heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[key] }}</span>
+        <small data-kind-count="{{ key }}">{{ post.reactions[key] }}</small>
+    </button>
+    {% endfor %}
+    <i class="rd-pill-sep"></i>
+    {{ share_menu(post) }}
+    {{ bookmark(post) }}
+</div>
+{% endblock %}

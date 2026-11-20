@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf" content="{{ csrf_token }}">
+    <title>{% block title %}The Channel Desk{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}">
+</head>
+<body class="rd {% block bodyclass %}{% endblock %}">
+
+<header class="rd-mast">
+    <div class="rd-mast-row">
+        <a class="rd-logo" href="{{ url_for('reader_feed') }}">The Channel Desk<span>.</span></a>
+        <span class="rd-tag">By Truth, We Shape Lives.</span>
+        <div class="rd-mast-actions">
+            <form class="rd-search" id="rd-search-form" role="search" action="{{ url_for('reader_feed') }}" method="get">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                <input type="search" id="rd-q" name="q" placeholder="Search News....." aria-label="Search news" autocomplete="off">
+            </form>
+            <button type="button" class="rd-icon-btn" id="rd-saved-open" aria-label="Saved reading list">
+                <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+                <span class="rd-count" data-saved-count hidden>0</span>
+            </button>
+        </div>
+    </div>
+    {% block tabs %}{% endblock %}
+</header>
+
+{% block body %}{% endblock %}
+
+<footer class="rd-footer">
+    <div class="rd-footer-grid">
+        <div class="rd-fcol rd-fbrand">
+            <p class="rd-footer-name">THE CHANNEL</p>
+            <p class="rd-footer-sub">The Official Tertiary Student Publication of Fellowship Baptist College</p>
+            <p class="rd-footer-tag">By Truth, We Shape Lives</p>
+        </div>
+
+        <nav class="rd-fcol" aria-label="Sections">
+            <h4>Sections</h4>
+            <ul>
+                <li><a href="{{ url_for('reader_feed') }}#all">Latest</a></li>
+                <li><a href="{{ url_for('reader_feed') }}#News">News</a></li>
+                <li><a href="{{ url_for('reader_feed') }}#Column">Op/Ed</a></li>
+                <li><a href="{{ url_for('reader_feed') }}#Feature">Feature</a></li>
+                <li><a href="{{ url_for('reader_feed') }}#Sports">Sports</a></li>
+            </ul>
+        </nav>
+
+        <nav class="rd-fcol" aria-label="Reader">
+            <h4>Reader</h4>
+            <ul>
+                <li><a href="{{ url_for('reader_feed') }}#all">All stories</a></li>
+                <li><button type="button" data-open-saved>Saved reading list</button></li>
+            </ul>
+        </nav>
+
+        <div class="rd-fcol">
+            <h4>Contact Us</h4>
+            <ul class="rd-fcontact">
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></svg>
+                    <a href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener">thechannel_fbc</a>
+                </li>
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v2H7v4h3v7h4v-7h3l1-4h-4V8z"/></svg>
+                    <span>The Channel</span>
+                </li>
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                    <a href="mailto:thechannelfbc@gmail.com">thechannelfbc@gmail.com</a>
+                </li>
+            </ul>
+            <div class="rd-fsocial">
+                <a href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></svg>
+                </a>
+                <a href="mailto:thechannelfbc@gmail.com" aria-label="Email">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="rd-footer-bottom">
+        <span></span>
+        <p>Copyright &copy; 2026 | By Truth, We Shape Lives &nbsp;|&nbsp; All Rights Reserved</p>
+        <a href="#top" class="rd-totop">Back to top</a>
+    </div>
+</footer>
+
+<!-- Saved reading list drawer -->
+<div class="rd-scrim" id="rd-scrim" hidden></div>
+<aside class="rd-drawer" id="rd-drawer" aria-hidden="true" aria-label="Saved reading list">
+    <div class="rd-drawer-head">
+        <h2>Saved reading list</h2>
+        <button type="button" class="rd-icon-btn" id="rd-saved-close" aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+    <div class="rd-drawer-body" data-saved-list data-empty="Nothing saved yet. Tap the bookmark on any story."></div>
+</aside>
+
+<div class="rd-toast" id="rd-toast" role="status" aria-live="polite"></div>
+<script src="{{ url_for('static', filename='js/reader.js') }}"></script>
+</body>
+</html>

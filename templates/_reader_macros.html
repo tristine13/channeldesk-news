@@ -1,0 +1,68 @@
+{# Shared bits for the public reader #}
+
+{% macro share_menu(post) %}
+<div class="rd-share" data-share data-title="{{ post.title }}" data-url="{{ url_for('reader_article', post_id=post.id, _external=True) }}">
+    <button type="button" class="rd-act" data-share-btn aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+        <span>Share</span>
+    </button>
+    <div class="rd-menu" role="menu">
+        <button type="button" role="menuitem" data-share-do="copy">Copy link</button>
+        <button type="button" role="menuitem" data-share-do="messenger">Messenger</button>
+        <button type="button" role="menuitem" data-share-do="story">IG Story</button>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro bookmark(post) %}
+<button type="button" class="rd-act rd-save" data-save
+        data-id="{{ post.id }}" data-title="{{ post.title }}"
+        data-url="{{ url_for('reader_article', post_id=post.id) }}" aria-pressed="false" aria-label="Save to reading list">
+    <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+    <span>Save</span>
+</button>
+{% endmacro %}
+
+{# One reaction control: main button + hover / long-press picker #}
+{% macro reactions_control(post, reactions) %}
+<div class="rd-react" data-react data-post="{{ post.id }}" data-mine="{{ post.my_reaction or '' }}">
+    <button type="button" class="rd-act rd-react-main {{ 'on' if post.my_reaction }}" aria-label="React">
+        <span class="rd-react-face" data-face>{% if post.my_reaction %}{{ {'heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[post.my_reaction] }}{% else %}♡{% endif %}</span>
+        <span data-total>{{ post.total_reactions }}</span>
+    </button>
+    <div class="rd-picker" role="group" aria-label="Choose a reaction">
+        {% for key, label in reactions %}
+        <button type="button" data-kind="{{ key }}" class="{{ 'on' if post.my_reaction == key }}" aria-label="{{ label }}" title="{{ label }}">
+            <span>{{ {'heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[key] }}</span>
+            <small data-kind-count="{{ key }}">{{ post.reactions[key] }}</small>
+        </button>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro card(post, reactions) %}
+<article class="rd-card" data-card data-id="{{ post.id }}" data-type="{{ post.type }}"
+         data-search="{{ (post.title ~ ' ' ~ post.author ~ ' ' ~ (post.position or '') ~ ' ' ~ post.label ~ ' ' ~ (post.content|excerpt(220)))|lower }}">
+    <header class="rd-byline">
+        <span class="rd-avatar" aria-hidden="true">{{ (post.author or '?')[:1]|upper }}</span>
+        <div class="rd-byline-text">
+            <strong>{{ post.author }}</strong>{% if post.position %} <span class="dot">•</span> {{ post.position }}{% endif %}
+            <div class="rd-sub">{{ post.created_at|ago }} <span class="dot">•</span> <span class="rd-cat">{{ post.label }}</span></div>
+        </div>
+    </header>
+    {% if post.cover %}
+    <a class="rd-img" href="{{ url_for('reader_article', post_id=post.id) }}" tabindex="-1" aria-hidden="true">
+        <img src="{{ url_for('reader_media', filename=post.cover) }}" alt="" loading="lazy">
+    </a>
+    {% endif %}
+    <h2 class="rd-headline"><a href="{{ url_for('reader_article', post_id=post.id) }}">{{ post.title }}</a></h2>
+    <p class="rd-excerpt">{{ post.content|excerpt(220) }}</p>
+    <footer class="rd-bar">
+        {{ reactions_control(post, reactions) }}
+        {{ share_menu(post) }}
+        {{ bookmark(post) }}
+        <span class="rd-read">{{ post.minutes }} min read</span>
+    </footer>
+</article>
+{% endmacro %}
