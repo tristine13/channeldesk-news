@@ -4,7 +4,7 @@
     var $ = function (s, r) { return (r || document).querySelector(s); };
     var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
     var csrf = ($('meta[name="csrf"]') || {}).content || '';
-    var EMOJI = { heart: '❤️', applaud: '👏', insightful: '💡', fire: '🔥' };
+    var EMOJI = { like: '👍', heart: '❤️', applaud: '👏', insightful: '💡', fire: '🔥' };
     var toastTimer;
 
     function toast(msg) {
@@ -162,7 +162,11 @@
         var vote = t.closest('[data-vote]');
         if (vote) { post('/news/poll/vote', { option: vote.dataset.vote }).then(renderPoll).catch(function () { toast('Could not record your vote.'); }); return; }
 
-        if (t.closest('#rd-saved-open') || t.closest('[data-open-saved]')) { drawerOpen(true); return; }
+        if (t.closest('[data-totop]')) {
+            var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' }); return;
+        }
+        if (t.closest('#rd-saved-open') || t.closest('[data-open-saved]')) { e.preventDefault(); drawerOpen(true); return; }
         if (t.closest('#rd-saved-close') || t === scrim) { drawerOpen(false); return; }
         closeMenus();
         $$('.rd-react.open').forEach(function (r) { if (!r.contains(t)) r.classList.remove('open'); });
@@ -185,6 +189,65 @@
     }
     window.addEventListener('hashchange', tabFromHash);
     tabFromHash();
+
+    // landing: the works advance on a timer only. Scrolling the page never moves them, so
+    // the reader can scroll straight past to the rest of the page. Every 5 seconds the cover
+    // reel slides up to the next work and the text swaps. Section buttons and "Next story"
+    // jump to a work and restart the 5 seconds. It loops back to the first work after the last.
+    var stage = $('.lp-stage'), reel = $('.lp-reel');
+    if (stage && reel) {
+        var texts = $$('.lp-text'), timerBar = $('.lp-timer');
+        var n = texts.length, idx = 0, timer = null, inView = false, SLIDE_MS = 900, AUTO_MS = 3000;
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function setReel(i, animate) {
+            reel.style.transition = animate && !reduce ? 'transform ' + SLIDE_MS + 'ms cubic-bezier(.65,0,.35,1)' : 'none';
+            reel.style.transform = 'translateY(' + (-i * 100) + '%)';
+        }
+        function show(i) {
+            var prev = idx % n;
+            idx = i;
+            setReel(idx, true);
+            var on = idx % n;
+            // the text slides on the same clock as the cover: old one up and out, new one up from below.
+            // An incoming text that is still parked above (few works, or the restart) is first dropped
+            // below without animation, so it always rises instead of sliding back down.
+            var inc = texts[on];
+            if (inc !== texts[prev] && inc.classList.contains('is-prev')) { inc.classList.remove('is-prev'); void inc.offsetWidth; }
+            texts.forEach(function (t, k) {
+                t.classList.toggle('is-on', k === on);
+                t.classList.toggle('is-prev', k === prev && prev !== on);
+            });
+            if (idx === n) {            // slid onto the extra copy of the first work: jump back to the real one unseen
+                setTimeout(function () { if (idx === n) { idx = 0; setReel(0, false); } }, SLIDE_MS + 50);
+            }
+            schedule();
+        }
+        function clearBar() {
+            clearTimeout(timer);
+            if (timerBar) timerBar.classList.remove('run');
+        }
+        function schedule() {
+            clearBar();
+            if (reduce || document.hidden || !inView || n < 2) return;
+            if (timerBar) {
+                timerBar.firstElementChild.style.animationDuration = AUTO_MS + 'ms';
+                void timerBar.offsetWidth; timerBar.classList.add('run');
+            }
+            timer = setTimeout(function () { show(idx % n + 1); }, AUTO_MS);
+        }
+        // only run while the section is actually on screen
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function (en) { inView = en[0].isIntersecting; schedule(); }, { threshold: .5 }).observe(stage);
+        } else { inView = true; }
+        document.addEventListener('visibilitychange', schedule);
+
+        document.addEventListener('click', function (e) {
+            var go = e.target.closest('[data-go]');
+            if (go) { e.preventDefault(); show(+go.dataset.go); }
+        });
+        schedule();
+    }
 
     renderSaved();
 })();

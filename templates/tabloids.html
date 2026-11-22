@@ -1,0 +1,47 @@
+{% extends "reader_base.html" %}
+{% block title %}Tabloids — The Channel Desk{% endblock %}
+
+{% block body %}
+<main class="tb-page">
+    <a class="rd-back" href="{{ url_for('landing') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back to home
+    </a>
+    <header class="tb-head">
+        <h1>Tabloids</h1>
+        <p>Quick, sharp reads: {{ names|join(', ') }}.</p>
+    </header>
+
+    {% if works %}
+    {% set lead = works[0] %}
+    <article class="tb-lead">
+        <a class="tb-lead-img" href="{{ url_for('reader_article', post_id=lead.id) }}" tabindex="-1" aria-hidden="true">
+            {% if lead.cover %}<img src="{{ url_for('reader_media', filename=lead.cover) }}" alt="">{% else %}<span>{{ lead.label }}</span>{% endif %}
+        </a>
+        <div class="tb-lead-body">
+            <p class="tb-kick">{{ lead.label }}</p>
+            <h2><a href="{{ url_for('reader_article', post_id=lead.id) }}">{{ lead.title }}</a></h2>
+            <p class="tb-ex">{{ lead.content|excerpt(200) }}</p>
+            <p class="tb-meta">{{ lead.author }} <span class="dot">•</span> {{ lead.created_at|ago }}</p>
+            <a class="tb-read" href="{{ url_for('reader_article', post_id=lead.id) }}">Read story &rarr;</a>
+        </div>
+    </article>
+
+    {% if works|length > 1 %}
+    <div class="tb-grid">
+        {% for p in works[1:] %}
+        <article class="tb-card">
+            <a class="tb-img" href="{{ url_for('reader_article', post_id=p.id) }}" tabindex="-1" aria-hidden="true">
+                {% if p.cover %}<img src="{{ url_for('reader_media', filename=p.cover) }}" alt="" loading="lazy">{% else %}<span>{{ p.label }}</span>{% endif %}
+            </a>
+            <p class="tb-kick">{{ p.label }}</p>
+            <h3><a href="{{ url_for('reader_article', post_id=p.id) }}">{{ p.title }}</a></h3>
+            <p class="tb-meta">{{ p.author }} <span class="dot">•</span> {{ p.created_at|ago }}</p>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="rd-empty">No tabloid stories have been published yet. Check back soon.</p>
+    {% endif %}
+</main>
+{% endblock %}

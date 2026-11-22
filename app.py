@@ -11,10 +11,14 @@ import re
 import secrets
 from datetime import datetime
 from html import escape
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
-from flask import (Flask, abort, jsonify, render_template, request,
-                   send_from_directory, session)
+import base64
+import binascii
+
+from flask import (Flask, Response, abort, jsonify, redirect, render_template, request,
+                   send_from_directory, session, url_for)
 from markupsafe import Markup
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -41,32 +45,71 @@ UPLOAD_FOLDER = os.path.abspath(os.getenv("UPLOAD_FOLDER") or first_existing([
     os.path.join(HERE, "..", "uploads"),
     os.path.join(HERE, "..", "channeldesk", "uploads")]) or os.path.join(HERE, "uploads"))
 
-REACTIONS = [("heart", "Heart"), ("applaud", "Applaud"),
+# The publication's logo: use this site's own static/images, else the staff app's copy
+LOGO_DIR = first_existing([os.path.join(HERE, "static", "images", "channellogo.png"),
+                           os.path.join(HERE, "..", "channeldesk", "static", "images", "channellogo.png"),
+                           os.path.join(HERE, "..", "static", "images", "channellogo.png")])
+
+CAMPUS_PHOTO = first_existing([os.path.join(HERE, "static", "images", "fbc.jpg"),
+                               os.path.join(HERE, "..", "channeldesk", "static", "images", "fbc.jpg"),
+                               os.path.join(HERE, "..", "static", "images", "fbc.jpg")])
+
+# Uploaded pictures live in a public Supabase Storage bucket (staff app uploads them there).
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL") or "").rstrip("/")
+STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "uploads")
+TZ = ZoneInfo(os.getenv("APP_TZ", "Asia/Manila"))
+
+
+def storage_url(filename):
+    return f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{filename}"
+
+
+REACTIONS = [("like", "Like"), ("heart", "Heart"), ("applaud", "Applaud"),
              ("insightful", "Insightful"), ("fire", "Fire")]
 REACTION_KEYS = [k for k, _ in REACTIONS]
-TABS = [("all", "Latest"), ("News", "News"), ("Column", "Op/Ed"),
-        ("Feature", "Feature"), ("Sports", "Sports")]
-TYPE_LABELS = {"News": "News", "Sports": "Sports", "Feature": "Feature", "Column": "Op/Ed",
-               "Op/Ed": "Op/Ed"}
+# (url slug, label, post types that belong to it). Old "Column" / "Op/Ed" posts count as Opinion.
+SECTIONS = [("news", "News", ["News"]),
+            ("opinion", "Opinion", ["Opinion", "Column", "Op/Ed"]),
+            ("feature", "Feature", ["Feature"]),
+            ("literary", "Literary", ["Literary"]),
+            ("sci-tech", "Sci-Tech", ["Sci-Tech"]),
+            ("sports", "Sports", ["Sports"]),
+            ("lokal", "Lokal", ["Lokal"])]
+SECTION_OF = {t: slug for slug, _, types in SECTIONS for t in types}
+SECTION_LABEL = {slug: label for slug, label, _ in SECTIONS}
+TYPE_LABELS = {t: label for _, label, types in SECTIONS for t in types}
 # Campus Pulse: edit the question / options here
 POLL = {"question": "What should we cover more of this semester?",
         "options": [("events", "Campus events"), ("sports", "Sports"),
                     ("voices", "Student voices"), ("features", "Long-form features")]}
 
+# Landing page "Watch Now": the first video is the large one, the next two sit beside it.
+# Add entries like {"title": "...", "url": "https://www.youtube.com/watch?v=..."}. YouTube links get
+# their thumbnail automatically; for other sites add "thumb": "https://.../picture.jpg".
+# Empty slots show a "coming soon" card.
+VIDEOS = []
+
 _ready = False
+
+
+def watch_items():
+    """Exactly three cards for the Watch Now section (real videos first, then placeholders)."""
+    items = []
+    for v in VIDEOS[:3]:
+        thumb = v.get("thumb")
+        m = re.search(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([\w-]{11})", v.get("url", ""))
+        if not thumb and m:
+            thumb = f"https://img.youtube.com/vi/{m.group(1)}/hqdefault.jpg"
+        items.append({"title": v.get("title", ""), "url": v.get("url", "#"), "thumb": thumb})
+    while len(items) < 3:
+        items.append(None)
+    return items
 
 
 def ensure_tables():
     """Create the small tables this site writes to, the first time they're needed."""
-    global _ready
-    if _ready:
-        return
-    execute("CREATE TABLE IF NOT EXISTS post_reactions (post_id INT NOT NULL, kind VARCHAR(20) "
-            "NOT NULL, n INT NOT NULL DEFAULT 0, PRIMARY KEY (post_id, kind))")
-    execute("CREATE TABLE IF NOT EXISTS post_views (post_id INT PRIMARY KEY, n INT NOT NULL DEFAULT 0)")
-    execute("CREATE TABLE IF NOT EXISTS poll_votes (option_key VARCHAR(30) PRIMARY KEY, "
-            "n INT NOT NULL DEFAULT 0)")
-    _ready = True
+    # Tables are created once in Supabase (migration 'channeldesk_initial_schema'); nothing to do.
+    return
 
 
 SELECT = (
@@ -82,10 +125,10 @@ SELECT = (
 
 # ---------------------------------------------------------------- helpers
 @app.context_processor
-def inject_csrf():
+def inject_globals():
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    return dict(csrf_token=session["csrf"])
+    return dict(csrf_token=session["csrf"], sections=SECTIONS)
 
 
 @app.before_request
@@ -98,7 +141,8 @@ def check_csrf():
 
 @app.template_filter("ago")
 def ago_filter(dt):
-    secs = max(0, int((datetime.now() - dt).total_seconds()))
+    dt = dt.astimezone(TZ)
+    secs = max(0, int((datetime.now(TZ) - dt).total_seconds()))
     if secs < 60:
         return "just now"
     for size, name in ((86400 * 7, None), (86400, "d"), (3600, "h"), (60, "m")):
@@ -165,13 +209,33 @@ def not_found(_e):
 
 
 @app.route("/")
-@app.route("/news")
-def reader_feed():
+def landing():
+    """Front page: the hero, then the latest works one screen at a time, each tagged by section."""
     ensure_tables()
     rows = cards(query(SELECT + "ORDER BY p.created_at DESC"))
+    works = rows[:12]
+    for p in works:
+        p["slug"] = SECTION_OF.get(p["type"], "")
+    # side buttons: position of the newest work of each section (None = nothing published there yet)
+    pills = [(slug, label, next((i for i, p in enumerate(works) if p["slug"] == slug), None))
+             for slug, label, _ in SECTIONS]
+    return render_template("landing.html", works=works, pills=pills, total=len(rows), watch=watch_items())
+
+
+@app.route("/news")
+@app.route("/section/<slug>")
+def reader_feed(slug=None):
+    """All stories, or one section (News, Opinion, ...)."""
+    ensure_tables()
+    if slug is not None and slug not in SECTION_LABEL:
+        abort(404)
+    rows = cards(query(SELECT + "ORDER BY p.created_at DESC"))
     top = sorted(rows, key=lambda p: (p["views"], p["total_reactions"]), reverse=True)[:5]
+    if slug:
+        rows = [p for p in rows if SECTION_OF.get(p["type"]) == slug]
     return render_template("reader_feed.html", posts=rows, most_read=top, poll=poll_state(),
-                           tabs=TABS, reactions=REACTIONS)
+                           reactions=REACTIONS, current=slug or "all",
+                           section_label=SECTION_LABEL.get(slug))
 
 
 @app.route("/news/<int:post_id>")
@@ -183,13 +247,126 @@ def reader_article(post_id):
     seen = session.setdefault("seen", [])
     if post_id not in seen:                      # one view per visitor session
         execute("INSERT INTO post_views (post_id, n) VALUES (%s, 1) "
-                "ON DUPLICATE KEY UPDATE n = n + 1", (post_id,))
+                "ON CONFLICT (post_id) DO UPDATE SET n = post_views.n + 1", (post_id,))
         seen.append(post_id)
         session["seen"] = seen[-200:]
         row["views"] += 1
     post = cards([row])[0]
     more = cards(query(SELECT + "AND p.id <> %s ORDER BY p.created_at DESC LIMIT 3", (post_id,)))
     return render_template("reader_article.html", post=post, more=more, reactions=REACTIONS)
+
+
+# ---- Board page: the staff members of The Channel Desk (verified accounts, never the Admin) ----
+MEMBER_RANK = {"adviser": 0, "editor_in_chief": 1, "news_editor": 2, "staff": 3}
+MEMBER_TITLE = {"adviser": "Adviser", "editor_in_chief": "Editor-in-Chief", "news_editor": "News Editor"}
+_photo_col = False          # cache: (table alias, column) of a member picture column, or None
+
+
+def member_photo_column():
+    """Find an optional picture column on registrations / users (photo, avatar, picture, ...)."""
+    global _photo_col
+    if _photo_col is False:
+        _photo_col = None
+        try:
+            for table, alias in (("registrations", "r"), ("users", "u")):
+                row = query("SELECT column_name AS col FROM information_schema.columns "
+                            "WHERE table_schema = 'public' AND table_name = %s AND column_name IN "
+                            "('photo','avatar','picture','profile_image','profile_photo','image') LIMIT 1",
+                            (table,), one=True)
+                if row:
+                    _photo_col = (alias, row["col"])
+                    break
+        except Exception:
+            _photo_col = None
+    return _photo_col
+
+
+def board_members():
+    col = member_photo_column()
+    photo = f', {col[0]}."{col[1]}" AS photo' if col else ", NULL AS photo"
+    rows = query("SELECT COALESCE(r.name, u.name, u.email) AS name, r.position AS position, "
+                 f"u.role AS role{photo} FROM registrations r JOIN users u ON u.email = r.email "
+                 "WHERE r.is_verified = 1 AND u.role <> 'admin'")  # is_verified is smallint
+    for m in rows:
+        m["title"] = MEMBER_TITLE.get(m["role"]) or m["position"] or "Staff"
+        p = (m.get("photo") or "").strip()
+        m["photo_url"] = p if p.startswith(("http://", "https://")) else (
+            url_for("member_photo", filename=p) if p else None)
+        m["initial"] = (m["name"] or "?")[:1].upper()
+    rows.sort(key=lambda m: (MEMBER_RANK.get(m["role"], 9), (m["name"] or "").lower()))
+    return rows
+
+
+@app.route("/board")
+def board():
+    return render_template("board.html", members=board_members())
+
+
+# ---- Tabloids / Magazines: the published works grouped by the kind of reading they are ----
+TABLOID_SECTIONS = ["news", "sports", "lokal"]                 # quick, punchy reads
+MAGAZINE_SECTIONS = ["feature", "opinion", "literary", "sci-tech"]   # long-form, editorial reads
+
+
+def works_in(slugs):
+    rows = cards(query(SELECT + "ORDER BY p.created_at DESC"))
+    for p in rows:
+        p["slug"] = SECTION_OF.get(p["type"], "")
+    return [p for p in rows if p["slug"] in slugs]
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/tabloids")
+def tabloids():
+    ensure_tables()
+    return render_template("tabloids.html", works=works_in(TABLOID_SECTIONS),
+                           names=[SECTION_LABEL[s] for s in TABLOID_SECTIONS])
+
+
+@app.route("/magazines")
+def magazines():
+    ensure_tables()
+    return render_template("magazines.html", works=works_in(MAGAZINE_SECTIONS),
+                           names=[SECTION_LABEL[s] for s in MAGAZINE_SECTIONS])
+
+
+@app.route("/board/photo/<path:filename>")
+def member_photo(filename):
+    """A member's picture, only if it is really attached to a verified member."""
+    if not any(m.get("photo") == filename for m in board_members()):
+        abort(404)
+    if SUPABASE_URL:
+        return redirect(storage_url(filename), code=302)
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+@app.route("/brand/logo.png")
+def brand_logo():
+    if not LOGO_DIR:
+        abort(404)
+    return send_from_directory(os.path.dirname(os.path.abspath(LOGO_DIR)), "channellogo.png")
+
+
+@app.route("/brand/header-logo.png")
+def brand_header_logo():
+    """Gold eagle on a transparent background, for the dark landing header (stored in header_logo.b64)."""
+    try:
+        with open(os.path.join(HERE, "header_logo.b64"), "r", encoding="ascii") as f:
+            data = base64.b64decode(f.read().strip(), validate=True)
+    except (OSError, binascii.Error, ValueError):
+        return brand_logo()                      # fall back to the standard logo
+    return Response(data, mimetype="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.route("/brand/campus.jpg")
+def brand_campus():
+    """The college photo used behind the landing-page hero."""
+    if not CAMPUS_PHOTO:
+        abort(404)
+    return send_from_directory(os.path.dirname(os.path.abspath(CAMPUS_PHOTO)), "fbc.jpg")
 
 
 @app.route("/media/<path:filename>")
@@ -200,6 +377,10 @@ def reader_media(filename):
                (filename, filename), one=True)
     if not ok:
         abort(404)
+    if SUPABASE_URL:
+        resp = redirect(storage_url(filename), code=302)
+        resp.headers["Cache-Control"] = "public, max-age=3600"
+        return resp
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
@@ -219,7 +400,7 @@ def reader_react(post_id):
         mine.pop(str(post_id), None)
     else:
         execute("INSERT INTO post_reactions (post_id, kind, n) VALUES (%s,%s,1) "
-                "ON DUPLICATE KEY UPDATE n = n + 1", (post_id, kind))
+                "ON CONFLICT (post_id, kind) DO UPDATE SET n = post_reactions.n + 1", (post_id, kind))
         mine[str(post_id)] = kind
     session["reacted"] = mine
     counts = {k: 0 for k in REACTION_KEYS}
@@ -236,7 +417,7 @@ def reader_vote():
         abort(400)
     if not session.get("poll_vote"):             # one vote per visitor session
         execute("INSERT INTO poll_votes (option_key, n) VALUES (%s,1) "
-                "ON DUPLICATE KEY UPDATE n = n + 1", (key,))
+                "ON CONFLICT (option_key) DO UPDATE SET n = poll_votes.n + 1", (key,))
         session["poll_vote"] = key
     return jsonify(poll_state())
 

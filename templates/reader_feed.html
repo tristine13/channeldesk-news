@@ -2,14 +2,6 @@
 {% from "_reader_macros.html" import card with context %}
 {% block title %}The Channel Desk — Campus News{% endblock %}
 
-{% block tabs %}
-<nav class="rd-tabs" aria-label="Sections">
-    {% for key, label in tabs %}
-    <button type="button" class="rd-tab {{ 'active' if loop.first }}" data-tab="{{ key }}">{{ label }}</button>
-    {% endfor %}
-</nav>
-{% endblock %}
-
 {% block body %}
 <main class="rd-layout">
 
@@ -23,17 +15,13 @@
                 {% else %}<li class="rd-muted">No stories yet.</li>{% endfor %}
             </ol>
         </section>
-        <section class="rd-box">
-            <h3 class="rd-box-title">Saved Reading List</h3>
-            <div data-saved-list data-empty="Tap the bookmark on a story to keep it here."></div>
-        </section>
-        <p class="rd-colophon">The Official Tertiary Student Publication</p>
     </aside>
 
     <section class="rd-feed" id="rd-feed">
+        <h1 class="rd-feed-title">{{ section_label or 'Latest stories' }}</h1>
         {% for p in posts %}{{ card(p, reactions) }}{% endfor %}
         <p class="rd-empty" id="rd-empty" {% if posts %}hidden{% endif %}>
-            {% if posts %}No stories match your search.{% else %}No approved stories yet. Check back soon.{% endif %}
+            {% if posts %}No stories match your search.{% elif section_label %}No {{ section_label }} stories yet. Check back soon.{% else %}No approved stories yet. Check back soon.{% endif %}
         </p>
     </section>
 

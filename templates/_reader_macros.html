@@ -8,7 +8,7 @@
     </button>
     <div class="rd-menu" role="menu">
         <button type="button" role="menuitem" data-share-do="copy">Copy link</button>
-        <button type="button" role="menuitem" data-share-do="messenger">Messenger</button>
+        <button type="button" role="menuitem" data-share-do="messenger">Facebook</button>
         <button type="button" role="menuitem" data-share-do="story">IG Story</button>
     </div>
 </div>
@@ -27,13 +27,13 @@
 {% macro reactions_control(post, reactions) %}
 <div class="rd-react" data-react data-post="{{ post.id }}" data-mine="{{ post.my_reaction or '' }}">
     <button type="button" class="rd-act rd-react-main {{ 'on' if post.my_reaction }}" aria-label="React">
-        <span class="rd-react-face" data-face>{% if post.my_reaction %}{{ {'heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[post.my_reaction] }}{% else %}♡{% endif %}</span>
+        <span class="rd-react-face" data-face>{% if post.my_reaction %}{{ {'like':'👍','heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[post.my_reaction] }}{% else %}♡{% endif %}</span>
         <span data-total>{{ post.total_reactions }}</span>
     </button>
     <div class="rd-picker" role="group" aria-label="Choose a reaction">
         {% for key, label in reactions %}
         <button type="button" data-kind="{{ key }}" class="{{ 'on' if post.my_reaction == key }}" aria-label="{{ label }}" title="{{ label }}">
-            <span>{{ {'heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[key] }}</span>
+            <span>{{ {'like':'👍','heart':'❤️','applaud':'👏','insightful':'💡','fire':'🔥'}[key] }}</span>
             <small data-kind-count="{{ key }}">{{ post.reactions[key] }}</small>
         </button>
         {% endfor %}
@@ -47,7 +47,7 @@
     <header class="rd-byline">
         <span class="rd-avatar" aria-hidden="true">{{ (post.author or '?')[:1]|upper }}</span>
         <div class="rd-byline-text">
-            <strong>{{ post.author }}</strong>{% if post.position %} <span class="dot">•</span> {{ post.position }}{% endif %}
+            <strong>{{ post.author }}</strong>
             <div class="rd-sub">{{ post.created_at|ago }} <span class="dot">•</span> <span class="rd-cat">{{ post.label }}</span></div>
         </div>
     </header>
@@ -57,12 +57,11 @@
     </a>
     {% endif %}
     <h2 class="rd-headline"><a href="{{ url_for('reader_article', post_id=post.id) }}">{{ post.title }}</a></h2>
-    <p class="rd-excerpt">{{ post.content|excerpt(220) }}</p>
+    <p class="rd-excerpt">{{ post.content|excerpt(220) }}{% if (post.content or '').split()|join(' ')|length > 220 %} <a class="rd-readmore" href="{{ url_for('reader_article', post_id=post.id) }}">Read more...</a>{% endif %}</p>
     <footer class="rd-bar">
         {{ reactions_control(post, reactions) }}
         {{ share_menu(post) }}
         {{ bookmark(post) }}
-        <span class="rd-read">{{ post.minutes }} min read</span>
     </footer>
 </article>
 {% endmacro %}

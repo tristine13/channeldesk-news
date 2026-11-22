@@ -1,0 +1,65 @@
+{% extends "reader_base.html" %}
+{% block title %}About Us — The Channel Desk{% endblock %}
+
+{% block body %}
+<main class="ab-page">
+    <a class="rd-back" href="{{ url_for('landing') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back to home
+    </a>
+
+    <header class="ab-head">
+        <p class="ab-kick">About Us</p>
+        <h1>The Channel Desk.</h1>
+        <p class="ab-lead">The Channel is the official tertiary student publication of Fellowship Baptist College.
+            The Channel Desk is its newsroom and its reading room: where our student journalists write, edit,
+            review and publish, and where every student can read the results.</p>
+    </header>
+
+    <section class="ab-sec">
+        <h2>Who we are</h2>
+        <p>The Channel is written and run by students of Fellowship Baptist College, guided by an adviser.
+            Our members work as writers, photojournalists, layout artists and editors, each bringing a different
+            skill to the same goal: telling the stories of our campus well.</p>
+        <p><a class="ab-link" href="{{ url_for('board') }}">Meet the Board &rarr;</a></p>
+    </section>
+
+    <section class="ab-quote">
+        <p class="ab-motto">By Truth, We Shape Lives.</p>
+        <p>Our motto is how we work. We aim for accurate, fair reporting, because what a publication prints shapes
+            how a community sees itself.</p>
+    </section>
+
+    <section class="ab-sec">
+        <h2>What we publish</h2>
+        <ul class="ab-sections">
+            <li><a href="{{ url_for('reader_feed', slug='news') }}"><strong>News</strong><span>Reports on campus and school events.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='opinion') }}"><strong>Opinion</strong><span>Columns and op-eds from our writers.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='feature') }}"><strong>Feature</strong><span>In-depth stories and profiles.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='literary') }}"><strong>Literary</strong><span>Poems, essays and creative writing.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='sci-tech') }}"><strong>Sci-Tech</strong><span>Science and technology, explained.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='sports') }}"><strong>Sports</strong><span>Games, athletes and results.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='lokal') }}"><strong>Lokal</strong><span>Stories from our local community.</span></a></li>
+        </ul>
+        <p>Looking for a certain kind of read? Browse our <a class="ab-link" href="{{ url_for('tabloids') }}">Tabloids</a>
+            for quick, sharp stories or our <a class="ab-link" href="{{ url_for('magazines') }}">Magazines</a> for long-form reading.</p>
+    </section>
+
+    <section class="ab-sec">
+        <h2>How a story gets published</h2>
+        <p>Nothing appears here until it has been checked. Every work goes through the same four steps.</p>
+        <ol class="ab-steps">
+            <li><span>1</span><strong>Written</strong><em>A staff member writes and submits the work.</em></li>
+            <li><span>2</span><strong>Edited</strong><em>The News Editor reviews it first.</em></li>
+            <li><span>3</span><strong>Endorsed</strong><em>The Editor-in-Chief gives the next sign-off.</em></li>
+            <li><span>4</span><strong>Approved</strong><em>The Adviser gives the final approval, then it goes live.</em></li>
+        </ol>
+    </section>
+
+    <section class="ab-sec ab-contact">
+        <h2>Get in touch</h2>
+        <p>Have a tip, a question or a story idea? Reach us at
+            <a class="ab-link" href="mailto:thechannelfbc@gmail.com">thechannelfbc@gmail.com</a>
+            or follow <a class="ab-link" href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener">@thechannel_fbc</a> on Instagram.</p>
+    </section>
+</main>
+{% endblock %}

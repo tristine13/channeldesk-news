@@ -1,22 +1,31 @@
-"""MySQL helpers for the public news site. Same database as The Channel Desk."""
+"""PostgreSQL (Supabase) helpers for the public news site. Same database as The Channel Desk.
+
+Connection string comes from POSTGRES_URL (set automatically by the Supabase integration on
+Vercel; use the pooled/transaction URL there) or DATABASE_URL for local work.
+"""
 import os
 
-import pymysql
-import pymysql.cursors
+import psycopg
 from flask import g
+from psycopg.rows import dict_row
+
+
+def _dsn():
+    url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+    if not url:
+        raise RuntimeError("Set POSTGRES_URL (or DATABASE_URL) to your Supabase connection string.")
+    # psycopg does not understand the pgbouncer/supa query flags the integration may append
+    return url.split("?")[0] if "supa=" in url else url
 
 
 def get_db():
     if "db" not in g:
-        g.db = pymysql.connect(
-            host=os.getenv("DB_HOST", "127.0.0.1"),
-            port=int(os.getenv("DB_PORT", "3307")),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            database=os.getenv("DB_NAME", "channeldesk"),
-            cursorclass=pymysql.cursors.DictCursor,
+        g.db = psycopg.connect(
+            _dsn(),
+            row_factory=dict_row,
             autocommit=True,
-            charset="utf8mb4",
+            prepare_threshold=None,      # required behind Supabase's transaction pooler
+            sslmode="require",
         )
     return g.db
 
@@ -35,6 +44,10 @@ def query(sql, args=(), one=False):
 
 
 def execute(sql, args=()):
+    """Run a write. If the statement ends with RETURNING id, that id is returned."""
     with get_db().cursor() as cur:
         cur.execute(sql, args)
-        return cur.lastrowid
+        if cur.description:
+            row = cur.fetchone()
+            return next(iter(row.values())) if row else None
+        return None
