@@ -3,9 +3,6 @@
 
 {% block body %}
 <main class="tb-page">
-    <a class="rd-back" href="{{ url_for('landing') }}">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back to home
-    </a>
     <header class="tb-head">
         <h1>Tabloids</h1>
         <p>Quick, sharp reads: {{ names|join(', ') }}.</p>

@@ -4,7 +4,7 @@
     var $ = function (s, r) { return (r || document).querySelector(s); };
     var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
     var csrf = ($('meta[name="csrf"]') || {}).content || '';
-    var EMOJI = { like: '👍', heart: '❤️', applaud: '👏', insightful: '💡', fire: '🔥' };
+    var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
     var toastTimer;
 
     function toast(msg) {
@@ -59,7 +59,10 @@
         $$('[data-kind-count]', box).forEach(function (el) { el.textContent = d.counts[el.dataset.kindCount]; });
         $$('[data-kind]', box).forEach(function (b) { b.classList.toggle('on', b.dataset.kind === d.mine); });
         var tot = $('[data-total]', box); if (tot) tot.textContent = d.total;
-        var face = $('[data-face]', box); if (face) face.textContent = d.mine ? EMOJI[d.mine] : '♡';
+        var face = $('[data-face]', box);
+        if (face) face.innerHTML = HEART;
+        var sum = box.closest('[data-card]'); sum = sum && $('[data-sum]', sum);
+        if (sum) sum.innerHTML = d.counts.heart > 0 ? '<i class="rd-sum-heart">' + HEART + '</i>' : '';
         var main = $('.rd-react-main', box); if (main) main.classList.toggle('on', !!d.mine);
         var pop = (face && d.mine) ? face : (d.mine ? $('[data-kind="' + d.mine + '"] span', box) : null);
         if (pop) { pop.classList.remove('rd-bounce'); void pop.offsetWidth; pop.classList.add('rd-bounce'); }
@@ -119,15 +122,18 @@
     /* ---------------- Campus Pulse poll ---------------- */
     function renderPoll(p) {
         var box = $('[data-poll-body]'); if (!box) return;
+        if (p.status === 'none') { box.innerHTML = ''; return; }
+        var closed = p.status === 'closed';
         var html = '<p class="rd-poll-q">' + esc(p.question) + '</p>';
-        if (!p.voted) {
+        if (!p.voted && !closed) {
             html += p.options.map(function (o) { return '<button type="button" class="rd-poll-opt" data-vote="' + esc(o.key) + '">' + esc(o.label) + '</button>'; }).join('');
-            html += '<p class="rd-poll-total">One tap to vote. No sign-in needed.</p>';
+            html += '<p class="rd-poll-total">One tap to vote. No sign-in needed. Voting closes ' + esc(p.ends) + '.</p>';
         } else {
             html += p.options.map(function (o) {
                 return '<div class="rd-result' + (o.key === p.voted ? ' mine' : '') + '"><i style="width:' + o.pct + '%"></i><span>' + esc(o.label) + '</span><span>' + o.pct + '%</span></div>';
             }).join('');
-            html += '<p class="rd-poll-total">' + p.total + ' vote' + (p.total === 1 ? '' : 's') + '</p>';
+            html += '<p class="rd-poll-total">' + p.total + ' vote' + (p.total === 1 ? '' : 's') +
+                (closed ? ' · Poll closed ' + esc(p.ends) : ' · Closes ' + esc(p.ends)) + '</p>';
         }
         box.innerHTML = html;
     }
@@ -146,7 +152,7 @@
             var rb2 = main.parentNode;
             if (pressed) { pressed = false; return; }              // long-press just opened the picker
             if (rb2.classList.contains('open')) { rb2.classList.remove('open'); return; }
-            react(rb2, rb2.dataset.mine || 'heart'); return;       // tap: Heart, or undo the current one
+            react(rb2, 'heart'); return;                           // tap: love it, or tap again to undo
         }
 
         var sb = t.closest('[data-share-btn]');

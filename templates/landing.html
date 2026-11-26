@@ -15,7 +15,7 @@
             <a class="lp-visit" href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener">Visit Us
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><path d="M8.5 15.5l7-7M9.5 8.5h6v6" stroke-width="2"/></svg>
             </a>
-            <a class="lp-ico" href="https://www.facebook.com/search/top?q=The%20Channel%20Fellowship%20Baptist%20College" target="_blank" rel="noopener" aria-label="Facebook: The Channel">
+            <a class="lp-ico" href="{{ facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook: The Channel">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v2H7v4h3v7h4v-7h3l1-4h-4V8z"/></svg>
             </a>
             <a class="lp-ico" href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener" aria-label="Instagram: thechannel_fbc">
@@ -103,7 +103,7 @@
             </nav>
             <div class="lp-more-visit">
                 <a class="lp-visit-btn" href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener">Visit Us</a>
-                <a class="lp-soc" href="https://www.facebook.com/search/top?q=The%20Channel%20Fellowship%20Baptist%20College" target="_blank" rel="noopener" aria-label="Facebook: The Channel">
+                <a class="lp-soc" href="{{ facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook: The Channel">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v2H7v4h3v7h4v-7h3l1-4h-4V8z"/></svg>
                 </a>
                 <a class="lp-soc" href="https://www.instagram.com/thechannel_fbc" target="_blank" rel="noopener" aria-label="Instagram: thechannel_fbc">
@@ -117,29 +117,28 @@
     </div>
 </section>
 
-{# After "More on The Channel": one large video and two smaller ones, each with a caption bar #}
-<section class="lp-watch" aria-label="Watch now">
+{# After "More on The Channel": the most read stories (one large card, two smaller), each with a caption bar #}
+{% if trending %}
+<section class="lp-watch" aria-label="Trending on The Channel">
     <div class="lp-watch-in">
-        <h2 class="lp-watch-title">Watch Now</h2>
-        <div class="lp-watch-grid">
-            {% for v in watch %}
+        <h2 class="lp-watch-title">Trending on The Channel</h2>
+        <div class="lp-watch-grid lp-trend n{{ trending|length }}">
+            {% for p in trending %}
             <figure class="lp-vid {{ 'lp-vid-main' if loop.first }}">
-                {% if v %}
-                <a class="lp-vid-frame" href="{{ v.url }}" target="_blank" rel="noopener" aria-label="Watch: {{ v.title }}">
-                    {% if v.thumb %}<img src="{{ v.thumb }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
-                    <span class="lp-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>
+                <a class="lp-vid-frame {{ 'lp-vid-empty' if not p.cover }}" href="{{ url_for('reader_article', post_id=p.id) }}" aria-label="Read: {{ p.title }}">
+                    {% if p.cover %}<img src="{{ url_for('reader_media', filename=p.cover) }}" alt="" loading="lazy">
+                    {% else %}<img src="{{ url_for('brand_logo') }}" alt="">{% endif %}
+                    <span class="lp-rank" aria-hidden="true">{{ loop.index }}</span>
+                    {% if p.label %}<span class="lp-tagchip">{{ p.label }}</span>{% endif %}
                 </a>
-                <figcaption class="lp-vid-cap">{{ v.title }}</figcaption>
-                {% else %}
-                <div class="lp-vid-frame lp-vid-empty">
-                    <img src="{{ url_for('brand_logo') }}" alt="">
-                    <span class="lp-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>
-                </div>
-                <figcaption class="lp-vid-cap">Video coming soon</figcaption>
-                {% endif %}
+                <figcaption class="lp-vid-cap">
+                    <a href="{{ url_for('reader_article', post_id=p.id) }}">{{ p.title }}</a>
+                    <small>{{ p.views }} read{{ '' if p.views == 1 else 's' }}{% if p.total_reactions %} · {{ p.total_reactions }} reaction{{ '' if p.total_reactions == 1 else 's' }}{% endif %}</small>
+                </figcaption>
             </figure>
             {% endfor %}
         </div>
     </div>
 </section>
+{% endif %}
 {% endblock %}

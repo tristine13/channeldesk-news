@@ -3,10 +3,6 @@
 
 {% block body %}
 <main class="ab-page">
-    <a class="rd-back" href="{{ url_for('landing') }}">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back to home
-    </a>
-
     <header class="ab-head">
         <p class="ab-kick">About Us</p>
         <h1>The Channel Desk.</h1>
@@ -33,6 +29,7 @@
         <h2>What we publish</h2>
         <ul class="ab-sections">
             <li><a href="{{ url_for('reader_feed', slug='news') }}"><strong>News</strong><span>Reports on campus and school events.</span></a></li>
+            <li><a href="{{ url_for('reader_feed', slug='editorial') }}"><strong>Editorial</strong><span>The stand of The Channel on issues that matter.</span></a></li>
             <li><a href="{{ url_for('reader_feed', slug='opinion') }}"><strong>Opinion</strong><span>Columns and op-eds from our writers.</span></a></li>
             <li><a href="{{ url_for('reader_feed', slug='feature') }}"><strong>Feature</strong><span>In-depth stories and profiles.</span></a></li>
             <li><a href="{{ url_for('reader_feed', slug='literary') }}"><strong>Literary</strong><span>Poems, essays and creative writing.</span></a></li>
@@ -49,7 +46,7 @@
         <p>Nothing appears here until it has been checked. Every work goes through the same four steps.</p>
         <ol class="ab-steps">
             <li><span>1</span><strong>Written</strong><em>A staff member writes and submits the work.</em></li>
-            <li><span>2</span><strong>Edited</strong><em>The News Editor reviews it first.</em></li>
+            <li><span>2</span><strong>Edited</strong><em>The Editor reviews it first.</em></li>
             <li><span>3</span><strong>Endorsed</strong><em>The Editor-in-Chief gives the next sign-off.</em></li>
             <li><span>4</span><strong>Approved</strong><em>The Adviser gives the final approval, then it goes live.</em></li>
         </ol>

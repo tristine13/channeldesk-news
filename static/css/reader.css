@@ -2,10 +2,17 @@
 :root {
     --paper: #FAF9F6; --card: #FFFFFF; --line: #E4E4E7; --ink: #121212; --muted: #6B6B70;
     --crimson: #881337; --crimson-soft: #F9ECEF;
-    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: 'Playfair Display', serif;   /* same heading face as the staff app */
+    --sans: 'Inter', sans-serif;          /* same body face as the staff app */
 }
 *, *::before, *::after { box-sizing: border-box; }
+/* slim scrollbars without the up/down arrow buttons */
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #c4c4c4; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: #a8a8a8; background-clip: content-box; }
+*::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+*::-webkit-scrollbar-corner { background: transparent; }
 body.rd { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
 .rd a { color: inherit; text-decoration: none; }
 .rd button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
@@ -83,7 +90,8 @@ body.rd { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px
 .rd-feed { display: flex; flex-direction: column; gap: 16px; max-width: 680px; width: 100%; margin: 0 auto; }
 .rd-card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .rd-byline { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
-.rd-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #EFEDE8; font: 600 15px var(--serif); }
+.rd-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #EFEDE8; font: 600 15px var(--serif); overflow: hidden; }
+.rd-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rd-byline-text { font-size: 14px; line-height: 1.3; }
 .rd-sub { font-size: 12.5px; color: var(--muted); }
 .rd-cat { color: var(--crimson); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: 11.5px; }
@@ -93,8 +101,8 @@ body.rd { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px
 .rd-headline a { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat; transition: background-size .25s ease; }
 .rd-headline a:hover { background-size: 100% 1.5px; }
 .rd-excerpt { margin: 0 16px 16px; color: #3F3F46; }
-.rd-readmore { color: var(--crimson) !important; font-weight: 600; white-space: nowrap; }
-.rd-readmore:hover { text-decoration: underline; text-underline-offset: 3px; }
+.rd-readmore { color: rgba(107, 107, 112, .65) !important; font-weight: 600; white-space: nowrap; transition: color .15s; }
+.rd-readmore:hover, .rd-readmore:focus-visible { color: var(--crimson) !important; text-decoration: underline; text-underline-offset: 3px; }
 .rd-bar { display: flex; align-items: center; gap: 14px; padding: 6px 12px 8px; border-top: 1px solid var(--line); }
 @media (max-width: 440px) { .rd-bar { gap: 2px; padding: 4px 6px 6px; } }
 .rd-read { margin-left: auto; padding-right: 8px; font-size: 12.5px; color: var(--muted); }
@@ -103,6 +111,23 @@ body.rd { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px
 .rd-act svg { width: 18px; height: 18px; }
 .rd-save.on { color: var(--crimson); }
 .rd-save.on svg { fill: var(--crimson); }
+
+/* post action row (like / save / share, reaction badges on the right), icons only */
+.rd-bar { gap: 4px; }
+.rd-bar .rd-act { height: 40px; padding: 0 12px; gap: 8px; color: #65676B; font-size: 15px; font-weight: 500; }
+.rd-bar .rd-act svg { width: 24px; height: 24px; stroke-width: 1.7; }
+.rd-bar .rd-act > span:not([data-total]):not(.rd-react-face) { display: none; }
+.rd-bar .rd-react-face svg { display: block; }
+.rd-bar .rd-react-main.on, .rd-bar .rd-act:hover { color: var(--crimson); }
+.rd-sum { margin-left: auto; display: flex; align-items: center; padding-right: 4px; }
+.rd-sum i { display: grid; place-items: center; width: 22px; height: 22px; margin-left: -6px; border-radius: 50%; border: 2px solid var(--card); font-style: normal; font-size: 11px; line-height: 1; background: #F7B125; }
+.rd-sum i:first-child { margin-left: 0; }
+.rd-sum .rd-sum-heart { background: var(--crimson); color: #fff; }
+.rd-sum .rd-sum-heart svg { width: 12px; height: 12px; fill: #fff; stroke: none; }
+/* the heart fills in maroon once you have loved a story */
+.rd-react-main.on svg, .rd-pill > button[data-kind].on svg { fill: var(--crimson); stroke: var(--crimson); }
+.rd-pill > button[data-kind] svg { width: 24px; height: 24px; display: block; color: #65676B; }
+.rd-pill > button[data-kind]:hover svg { color: var(--crimson); }
 
 /* reactions */
 .rd-react { position: relative; }
@@ -170,7 +195,8 @@ body.rd { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px
 .rd-pill-sep { width: 1px; height: 26px; background: var(--line); margin: 0 6px; }
 .rd-pill .rd-act span { display: none; }
 .rd-pill .rd-menu { left: auto; right: -40px; }
-@media (min-width: 560px) { .rd-pill .rd-act span { display: inline; } }
+.rd-pill .rd-act { padding: 0 10px; }
+.rd-pill .rd-act svg { width: 24px; height: 24px; }
 
 /* ---------- section tabs as links / feed title ---------- */
 a.rd-tab { display: block; white-space: nowrap; }
@@ -353,6 +379,15 @@ a.lp-vid-frame:hover img { transform: scale(1.04); }
 a.lp-vid-frame:hover .lp-play, a.lp-vid-frame:focus-visible .lp-play { background: var(--crimson); border-color: var(--crimson); transform: scale(1.08); }
 .lp-vid-cap { margin: 14px 0 0; padding: 12px 16px; background: var(--crimson-soft); border-radius: 6px; font: 500 17px/1.3 var(--sans); color: var(--ink); }
 .lp-vid-main .lp-vid-cap { font-size: 22px; }
+/* Trending: story covers instead of videos (no play button, ranked 1-3) */
+.lp-trend.n1 { grid-template-columns: minmax(0, 1fr); }
+.lp-trend .lp-vid-main .lp-vid-frame { aspect-ratio: 16 / 9.4; }
+.lp-rank { position: absolute; left: 14px; top: 14px; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--crimson); color: #fff; font: 700 17px var(--serif); }
+.lp-trend .lp-tagchip { top: 14px; right: 14px; }
+.lp-trend .lp-vid-cap a { display: block; font-weight: 600; }
+.lp-trend .lp-vid-cap a:hover { color: var(--crimson); }
+.lp-trend .lp-vid-cap small { display: block; margin-top: 3px; font: 400 13px var(--sans); color: var(--muted); }
+.lp-trend .lp-vid-main .lp-vid-cap a { font-size: 22px; line-height: 1.25; }
 @media (max-width: 900px) {
     .lp-watch-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
     .lp-vid-main { grid-row: auto; }
@@ -373,8 +408,12 @@ a.lp-vid-frame:hover .lp-play, a.lp-vid-frame:focus-visible .lp-play { backgroun
 .bd-info { padding: 18px 20px 22px; text-align: center; border-top: 1px solid var(--line); }
 .bd-name { margin: 0 0 6px; font: 700 20px/1.25 var(--serif); }
 .bd-pos { margin: 0; font: 600 12.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--crimson); }
-@media (max-width: 860px) { .bd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
-@media (max-width: 520px) { .bd-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Adviser and Editor-in-Chief: one card each, centred, same width as a card in the 3-column grid */
+.bd-top { display: flex; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+.bd-top .bd-card { width: calc((100% - 56px) / 3); }
+.bd-grid + .bd-grid:not(.bd-top), .bd-top + .bd-grid:not(.bd-top) { margin-top: 0; }
+@media (max-width: 860px) { .bd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } .bd-top { margin-bottom: 20px; } .bd-top .bd-card { width: calc((100% - 20px) / 2); } }
+@media (max-width: 520px) { .bd-grid { grid-template-columns: minmax(0, 1fr); } .bd-top .bd-card { width: 100%; } }
 
 /* ---------- About page ---------- */
 .ab-page { max-width: 860px; margin: 0 auto; padding: 28px 20px 80px; }
