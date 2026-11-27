@@ -489,6 +489,12 @@ def reader_media(filename):
                (filename, filename), one=True)
     if not ok:
         abort(404)
+    try:                                         # pictures are kept in the database (works on Vercel)
+        row = query("SELECT mime, data FROM image_files WHERE name = %s", (filename,), one=True)
+    except Exception:
+        row = None
+    if row:
+        return Response(row["data"], mimetype=row["mime"], headers={"Cache-Control": "public, max-age=86400"})
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
