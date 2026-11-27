@@ -120,13 +120,12 @@
     }
 
     /* ---------------- Campus Pulse poll ---------------- */
-    function renderPoll(p) {
-        var box = $('[data-poll-body]'); if (!box) return;
-        if (p.status === 'none') { box.innerHTML = ''; return; }
+    // every open poll is listed (newest first); each one is its own block and is voted on separately
+    function pollHtml(p) {
         var closed = p.status === 'closed';
         var html = '<p class="rd-poll-q">' + esc(p.question) + '</p>';
         if (!p.voted && !closed) {
-            html += p.options.map(function (o) { return '<button type="button" class="rd-poll-opt" data-vote="' + esc(o.key) + '">' + esc(o.label) + '</button>'; }).join('');
+            html += p.options.map(function (o) { return '<button type="button" class="rd-poll-opt" data-poll-id="' + p.id + '" data-vote="' + esc(o.key) + '">' + esc(o.label) + '</button>'; }).join('');
             html += '<p class="rd-poll-total">One tap to vote. No sign-in needed. Voting closes ' + esc(p.ends) + '.</p>';
         } else {
             html += p.options.map(function (o) {
@@ -135,9 +134,19 @@
             html += '<p class="rd-poll-total">' + p.total + ' vote' + (p.total === 1 ? '' : 's') +
                 (closed ? ' · Poll closed ' + esc(p.ends) : ' · Closes ' + esc(p.ends)) + '</p>';
         }
-        box.innerHTML = html;
+        return html;
     }
-    try { var pd = $('#rd-poll-data'); if (pd) renderPoll(JSON.parse(pd.textContent)); } catch (e) { }
+    function renderPolls(list) {
+        var box = $('[data-poll-body]'); if (!box) return;
+        box.innerHTML = list.map(function (p, i) {
+            return '<div class="rd-poll-item" data-poll-item="' + p.id + '"' +
+                (i ? ' style="margin-top:16px;padding-top:16px;border-top:1px solid #E5E7EB"' : '') + '>' + pollHtml(p) + '</div>';
+        }).join('');
+    }
+    function renderPoll(p) {                               // after a vote: refresh just that poll
+        var el = $('[data-poll-item="' + p.id + '"]'); if (el) el.innerHTML = pollHtml(p);
+    }
+    try { var pd = $('#rd-poll-data'); if (pd) renderPolls(JSON.parse(pd.textContent)); } catch (e) { }
 
     /* ---------------- events ---------------- */
     document.addEventListener('click', function (e) {
@@ -166,7 +175,7 @@
         if (un) { setSaved(getSaved().filter(function (s) { return String(s.id) !== un.dataset.unsave; })); renderSaved(); return; }
 
         var vote = t.closest('[data-vote]');
-        if (vote) { post('/news/poll/vote', { option: vote.dataset.vote }).then(renderPoll).catch(function () { toast('Could not record your vote.'); }); return; }
+        if (vote) { post('/news/poll/vote', { poll_id: vote.dataset.pollId, option: vote.dataset.vote }).then(renderPoll).catch(function () { toast('Could not record your vote.'); }); return; }
 
         if (t.closest('[data-totop]')) {
             var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;

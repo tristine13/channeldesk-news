@@ -35,7 +35,7 @@
                 {% else %}<li class="rd-muted">Nothing yet.</li>{% endfor %}
             </ol>
         </section>
-        {% if poll.status != 'none' %}
+        {% if polls %}
         <section class="rd-box" id="rd-poll">
             <h3 class="rd-box-title">Campus Pulse</h3>
             <div data-poll-body></div>
@@ -43,5 +43,5 @@
         {% endif %}
     </aside>
 </main>
-<script type="application/json" id="rd-poll-data">{{ poll|tojson }}</script>
+<script type="application/json" id="rd-poll-data">{{ polls|tojson }}</script>
 {% endblock %}

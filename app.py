@@ -64,6 +64,23 @@ FACEBOOK_URL = "https://web.facebook.com/thechannelFBC"
 
 TZ = ZoneInfo(os.getenv("APP_TZ", "Asia/Manila"))
 
+# ---- footer links (edit the addresses here; one place for the whole site) ----
+CONTACT_EMAIL = "thechannelfbc@gmail.com"
+
+
+def mail_to(subject):
+    return f"https://mail.google.com/mail/?view=cm&fs=1&to={CONTACT_EMAIL}&su={subject.replace(' ', '%20')}"
+
+
+FBC_SITE_URL = os.getenv("FBC_SITE_URL", "https://fbc.edu.ph/")   # the college's official website
+POLICY_URLS = {                                         # policy pages: point these at real pages when they exist
+    "editorial": os.getenv("POLICY_EDITORIAL_URL", ""),
+    "corrections": os.getenv("POLICY_CORRECTIONS_URL", ""),
+    "privacy": os.getenv("POLICY_PRIVACY_URL", ""),
+    "terms": os.getenv("POLICY_TERMS_URL", ""),
+}
+OFFICE_LOCATION = os.getenv("OFFICE_LOCATION", "Student Publications Office, FBC")
+
 
 REACTIONS = [("heart", "Heart")]     # one reaction only: a maroon heart
 REACTION_KEYS = [k for k, _ in REACTIONS]
@@ -161,7 +178,9 @@ SELECT = (
 def inject_globals():
     if "csrf" not in session:
         session["csrf"] = secrets.token_hex(16)
-    return dict(csrf_token=session["csrf"], sections=SECTIONS, facebook_url=FACEBOOK_URL)
+    return dict(csrf_token=session["csrf"], sections=SECTIONS, facebook_url=FACEBOOK_URL,
+                contact_email=CONTACT_EMAIL, fbc_site_url=FBC_SITE_URL, policy_urls=POLICY_URLS,
+                office_location=OFFICE_LOCATION, mail_to=mail_to)
 
 
 @app.before_request
@@ -266,19 +285,21 @@ def cards(rows):
     return rows
 
 
-def poll_state():
-    """The Campus Pulse poll to show: the one open right now, else the most recently closed one.
-    status is 'open', 'closed' or 'none' (nothing to show; the box is hidden)."""
+def polls_state():
+    """The Campus Pulse polls to show: every poll that is open right now (newest first), or, when none is
+    open, the most recently closed one. Returns a list of poll dicts (empty: the box is hidden)."""
     ensure_tables()
     now = datetime.now()
-    row = query("SELECT * FROM polls WHERE starts_at <= %s AND ends_at > %s "
-                "ORDER BY starts_at DESC LIMIT 1", (now, now), one=True)
+    rows = query("SELECT * FROM polls WHERE starts_at <= %s AND ends_at > %s "
+                 "ORDER BY starts_at DESC, id DESC", (now, now))
     status = "open"
-    if not row:
-        row = query("SELECT * FROM polls WHERE ends_at <= %s ORDER BY ends_at DESC LIMIT 1", (now,), one=True)
+    if not rows:
+        rows = query("SELECT * FROM polls WHERE ends_at <= %s ORDER BY ends_at DESC LIMIT 1", (now,))
         status = "closed"
-    if not row:
-        return {"status": "none"}
+    return [poll_dict(r, status) for r in rows]
+
+
+def poll_dict(row, status):
     labels = json.loads(row["options"])
     votes = {r["option_idx"]: r["n"] for r in query(
         "SELECT option_idx, n FROM poll_vote_counts WHERE poll_id = %s", (row["id"],))}
@@ -326,7 +347,7 @@ def reader_feed(slug=None):
     top = sorted(rows, key=lambda p: (p["views"], p["total_reactions"]), reverse=True)[:5]
     if slug:
         rows = [p for p in rows if SECTION_OF.get(p["type"]) == slug]
-    return render_template("reader_feed.html", posts=rows, most_read=top, poll=poll_state(),
+    return render_template("reader_feed.html", posts=rows, most_read=top, polls=polls_state(),
                            reactions=REACTIONS, current=slug or "all",
                            section_label=SECTION_LABEL.get(slug))
 
@@ -499,17 +520,18 @@ def reader_react(post_id):
 @app.route("/news/poll/vote", methods=["POST"])
 def reader_vote():
     ensure_tables()
-    state = poll_state()
+    poll_id = request.form.get("poll_id", type=int)
+    state = next((p for p in polls_state() if p["id"] == poll_id), None)
     key = request.form.get("option", "")
-    if state["status"] != "open" or key not in [o["key"] for o in state["options"]]:
-        abort(400)                               # no poll open (or closed meanwhile), or a bad option
+    if not state or state["status"] != "open" or key not in [o["key"] for o in state["options"]]:
+        abort(400)                               # that poll is not open (or closed meanwhile), or a bad option
     votes = dict(session.get("poll_votes", {}))
     if str(state["id"]) not in votes:            # one vote per visitor session, per poll
         execute("INSERT INTO poll_vote_counts (poll_id, option_idx, n) VALUES (%s,%s,1) "
                 "ON DUPLICATE KEY UPDATE n = n + 1", (state["id"], int(key)))
         votes[str(state["id"])] = key
         session["poll_votes"] = votes
-    return jsonify(poll_state())
+    return jsonify(next(p for p in polls_state() if p["id"] == poll_id))
 
 
 if __name__ == "__main__":

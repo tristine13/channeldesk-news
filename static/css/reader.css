@@ -494,10 +494,11 @@ a.lp-vid-frame:hover .lp-play, a.lp-vid-frame:focus-visible .lp-play { backgroun
 
 /* ---------- footer ---------- */
 .rd-footer { margin-top: 24px; background: #5A0C22; color: #fff; padding: 48px 16px 20px; }
-.rd-footer-grid { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr 1fr 1.4fr; gap: 32px; }
+.rd-footer-grid { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1.6fr; gap: 28px; }
 .rd-fcol h4 { margin: 0 0 14px; font: 500 18px/1.2 var(--sans); color: #fff; }
 .rd-fcol ul { list-style: none; margin: 0; padding: 0; }
-.rd-fcol li { margin-bottom: 10px; font-size: 15px; color: #EBD3DA; }
+.rd-fcol li { margin-bottom: 10px; font-size: 14.5px; line-height: 1.4; color: #EBD3DA; overflow-wrap: anywhere; }
+.rd-fcontact li span { color: #EBD3DA; }
 .rd-fcol li a, .rd-fcol li button { color: #EBD3DA; }
 .rd-fcol li a:hover, .rd-fcol li button:hover { color: #fff; text-decoration: underline; text-decoration-color: #fff; text-underline-offset: 3px; }
 .rd-footer-name { margin: 0 0 6px; font: 700 24px/1.1 var(--serif); letter-spacing: .1em; color: #fff; }
@@ -515,6 +516,7 @@ a.lp-vid-frame:hover .lp-play, a.lp-vid-frame:focus-visible .lp-play { backgroun
 .rd-totop { justify-self: end; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: #0B0B0C; border: 1px solid #D6D3CD; display: grid; place-items: center; transition: background .2s, color .2s, border-color .2s, transform .2s; }
 .rd-totop svg { width: 22px; height: 22px; stroke-width: 2; }
 .rd-totop:hover, .rd-totop:focus-visible { background: #0B0B0C; border-color: #0B0B0C; color: #fff; transform: translateY(-3px); }
+@media (max-width: 1000px) { .rd-footer-grid { grid-template-columns: repeat(4, 1fr); } .rd-fbrand { grid-column: 1 / -1; } }
 @media (max-width: 900px) { .rd-footer-grid { grid-template-columns: 1fr 1fr; } .rd-fbrand { grid-column: 1 / -1; } }
 @media (max-width: 560px) { .rd-footer-grid { grid-template-columns: 1fr; gap: 26px; } .rd-footer-bottom { grid-template-columns: 1fr; text-align: center; } .rd-footer-bottom span { display: none; } .rd-totop { justify-self: center; } }
 
