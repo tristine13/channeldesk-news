@@ -37,7 +37,8 @@
 
 </header>
 <nav class="lp-nav" aria-label="Sections">
-    <div class="lp-nav-in">
+    <button type="button" class="cat-toggle" aria-expanded="false">Categories <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="lp-nav-in cat-list">
         {% for slug, label, _ in sections %}
         <a href="{{ url_for('reader_feed', slug=slug) }}">{{ label }}</a>
         {% endfor %}

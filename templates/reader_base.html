@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf" content="{{ csrf_token }}">
     <title>{% block title %}The Channel Desk{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,11 +35,14 @@
     </div>
     {% block tabs %}
     <nav class="rd-tabs" aria-label="Sections">
-        <a class="rd-tab" href="{{ url_for('landing') }}">&larr; Home</a>
-        <a class="rd-tab {{ 'active' if current == 'all' }}" href="{{ url_for('reader_feed') }}">Latest</a>
-        {% for slug, label, _ in sections %}
-        <a class="rd-tab {{ 'active' if current == slug }}" href="{{ url_for('reader_feed', slug=slug) }}">{{ label }}</a>
-        {% endfor %}
+        <button type="button" class="cat-toggle" aria-expanded="false">Categories <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="cat-list">
+            <a class="rd-tab" href="{{ url_for('landing') }}">&larr; Home</a>
+            <a class="rd-tab {{ 'active' if current == 'all' }}" href="{{ url_for('reader_feed') }}">Latest</a>
+            {% for slug, label, _ in sections %}
+            <a class="rd-tab {{ 'active' if current == slug }}" href="{{ url_for('reader_feed', slug=slug) }}">{{ label }}</a>
+            {% endfor %}
+        </div>
     </nav>
     {% endblock %}
 </header>
@@ -121,6 +124,24 @@
 </aside>
 
 <div class="rd-toast" id="rd-toast" role="status" aria-live="polite"></div>
+<script>
+/* phone: the section links collapse into a "Categories" dropdown */
+(function () {
+    var navs = [].slice.call(document.querySelectorAll('.rd-tabs, .lp-nav'));
+    function close(n) { n.classList.remove('cat-open'); var b = n.querySelector('.cat-toggle'); if (b) b.setAttribute('aria-expanded', 'false'); }
+    navs.forEach(function (n) {
+        var b = n.querySelector('.cat-toggle'); if (!b) return;
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = !n.classList.contains('cat-open');
+            navs.forEach(close);
+            if (open) { n.classList.add('cat-open'); b.setAttribute('aria-expanded', 'true'); }
+        });
+    });
+    document.addEventListener('click', function (e) { navs.forEach(function (n) { if (!n.contains(e.target)) close(n); }); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') navs.forEach(close); });
+})();
+</script>
 <script src="{{ url_for('static', filename='js/reader.js') }}"></script>
 </body>
 </html>

@@ -26,6 +26,16 @@
     </section>
 
     <aside class="rd-rail rd-right">
+        {# phones and tablets: the left rail is hidden, so Top Stories shows here, just above Most Read #}
+        <section class="rd-box rd-top-small">
+            <h3 class="rd-box-title">Top Stories</h3>
+            <ol class="rd-plain">
+                {% for p in posts[:4] %}
+                <li><a href="{{ url_for('reader_article', post_id=p.id) }}">{{ p.title }}</a>
+                    <small>{{ p.label }} · {{ p.created_at|ago }}</small></li>
+                {% else %}<li class="rd-muted">No stories yet.</li>{% endfor %}
+            </ol>
+        </section>
         <section class="rd-box">
             <h3 class="rd-box-title">Most Read on Campus</h3>
             <ol class="rd-ranked">
