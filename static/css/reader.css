@@ -402,7 +402,7 @@ a.lp-vid-frame:hover .lp-play, a.lp-vid-frame:focus-visible .lp-play { backgroun
 .bd-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
 .bd-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transition: transform .2s, box-shadow .2s, border-color .2s; }
 .bd-card:hover { transform: translateY(-4px); border-color: var(--crimson); box-shadow: 0 10px 26px rgba(0,0,0,.08); }
-.bd-photo { aspect-ratio: 1 / 1; background: var(--crimson-soft); display: grid; place-items: center; overflow: hidden; }
+.bd-photo { aspect-ratio: 4 / 5; background: var(--crimson-soft); display: grid; place-items: center; overflow: hidden; }
 .bd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bd-initial { font: 700 clamp(64px, 9vw, 108px)/1 var(--serif); color: var(--crimson); opacity: .8; }
 .bd-info { padding: 18px 20px 22px; text-align: center; border-top: 1px solid var(--line); }

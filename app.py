@@ -373,39 +373,37 @@ def reader_article(post_id):
 # ---- Board page: the staff members of The Channel Desk (verified accounts, never the Admin) ----
 MEMBER_RANK = {"adviser": 0, "editor_in_chief": 1, "news_editor": 2, "staff": 3}
 MEMBER_TITLE = {"adviser": "Adviser", "editor_in_chief": "Editor-in-Chief", "news_editor": "Editor"}
-_photo_col = False          # cache: (table alias, column) of a member picture column, or None
+_board_col_ok = False
 
 
-def member_photo_column():
-    """Find an optional picture column on registrations / users (photo, avatar, picture, ...)."""
-    global _photo_col
-    if _photo_col is False:
-        _photo_col = None
-        try:
-            for table, alias in (("registrations", "r"), ("users", "u")):
-                row = query("SELECT column_name AS col FROM information_schema.columns "
-                            "WHERE table_schema = DATABASE() AND table_name = %s AND column_name IN "
-                            "('photo','avatar','picture','profile_image','profile_photo','image') LIMIT 1",
-                            (table,), one=True)
-                if row:
-                    _photo_col = (alias, row["col"])
-                    break
-        except Exception:
-            _photo_col = None
-    return _photo_col
+def ensure_board_photo_column():
+    """registrations.board_photo: the formal picture each member uploads in the staff app (My Profile).
+    Added here too, so the Board page works whichever app starts first."""
+    global _board_col_ok
+    if _board_col_ok:
+        return
+    try:
+        has = query("SELECT COUNT(*) AS n FROM information_schema.columns WHERE table_schema = DATABASE() "
+                    "AND table_name = 'registrations' AND column_name = 'board_photo'", one=True)
+        if not has["n"]:
+            execute("ALTER TABLE registrations ADD COLUMN board_photo VARCHAR(255) NULL")
+        _board_col_ok = True
+    except Exception as exc:
+        print(f"[news] could not add registrations.board_photo: {exc}")
 
 
 def board_members():
-    col = member_photo_column()
-    photo = f", {col[0]}.`{col[1]}` AS photo" if col else ", NULL AS photo"
+    """Verified staff for the Board. The picture is the formal photo the member uploaded themselves
+    (never their Google profile picture); members without one show their initial."""
+    ensure_board_photo_column()
+    photo = ", r.board_photo AS photo" if _board_col_ok else ", NULL AS photo"
     rows = query("SELECT COALESCE(r.name, u.name, u.email) AS name, r.position AS position, "
                  f"u.role AS role{photo} FROM registrations r JOIN users u ON u.email = r.email "
                  "WHERE r.is_verified = 1 AND u.role <> 'admin'")
     for m in rows:
         m["title"] = MEMBER_TITLE.get(m["role"]) or m["position"] or "Staff"
         p = (m.get("photo") or "").strip()
-        m["photo_url"] = big_picture(p) if p.startswith(("http://", "https://")) else (
-            url_for("member_photo", filename=p) if p else None)
+        m["photo_url"] = url_for("member_photo", filename=p) if p else None
         m["initial"] = (m["name"] or "?")[:1].upper()
     rows.sort(key=lambda m: (MEMBER_RANK.get(m["role"], 9), (m["name"] or "").lower()))
     return rows
@@ -452,6 +450,12 @@ def member_photo(filename):
     """A member's picture, only if it is really attached to a verified member."""
     if not any(m.get("photo") == filename for m in board_members()):
         abort(404)
+    try:                                         # pictures are kept in the database (works on Vercel)
+        row = query("SELECT mime, data FROM image_files WHERE name = %s", (filename,), one=True)
+    except Exception:
+        row = None
+    if row:
+        return Response(row["data"], mimetype=row["mime"], headers={"Cache-Control": "public, max-age=86400"})
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
