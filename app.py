@@ -79,7 +79,7 @@ POLICY_URLS = {                                         # policy pages: point th
     "privacy": os.getenv("POLICY_PRIVACY_URL", ""),
     "terms": os.getenv("POLICY_TERMS_URL", ""),
 }
-OFFICE_LOCATION = os.getenv("OFFICE_LOCATION", "Student Publications Office, FBC")
+OFFICE_LOCATION = os.getenv("OFFICE_LOCATION", "The Channel Desk Office, FBC")
 
 
 REACTIONS = [("heart", "Heart")]     # one reaction only: a maroon heart
